@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 /**
  * Checks if the renderer's canvas needs resizing to match display size and resizes it if necessary.
@@ -327,19 +328,21 @@ function solarSystemScene2() {
   const near = 0.1;
   const far = 3000;
   const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
-  camera.position.set(80, 80, 120);
+  camera.position.set(0, 15, 20);
   camera.lookAt(0, 0, 0);
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color('#000000');
+  // scene.background = new THREE.Color('#000000');
+  scene.background = new THREE.Color('#3a2e2e');
 
   // ⭐ Stars background
   const vertices = [];
+
   for (let i = 0; i < 10000; i++) {
     vertices.push(
-      THREE.MathUtils.randFloatSpread(4000),
-      THREE.MathUtils.randFloatSpread(4000),
-      THREE.MathUtils.randFloatSpread(4000)
+      THREE.MathUtils.randFloatSpread(8000, 10000),
+      THREE.MathUtils.randFloatSpread(8000, 10000),
+      THREE.MathUtils.randFloatSpread(8000, 10000)
     );
   }
 
@@ -359,15 +362,16 @@ function solarSystemScene2() {
   const sphereGeometry = new THREE.SphereGeometry(1, 32, 32);
 
   // ☀️ Sun
+  let sunMesh;
   textureLoader.load('sun-texture.jpg', (texture) => {
     const sunMaterial = new THREE.MeshBasicMaterial({ map: texture });
-    const sunMesh = new THREE.Mesh(sphereGeometry, sunMaterial);
+    sunMesh = new THREE.Mesh(sphereGeometry, sunMaterial);
     sunMesh.scale.set(5, 5, 5);
     solarSystem.add(sunMesh);
   });
 
   // 💡 Light source
-  scene.add(new THREE.PointLight(0xffffff, 5000));
+  scene.add(new THREE.PointLight(0xffffff, 8000));
 
   // 🌍 Earth
   const earthOrbit = new THREE.Object3D();
@@ -388,9 +392,10 @@ function solarSystemScene2() {
   moonOrbit.position.set(30, 0, 0); // orbit around Earth
   earthOrbit.add(moonOrbit);
 
+  let moonMesh;
   textureLoader.load('moon-texture.jpg', (texture) => {
     const material = new THREE.MeshPhongMaterial({ map: texture, shininess: 100 });
-    const moonMesh = new THREE.Mesh(sphereGeometry, material);
+    moonMesh = new THREE.Mesh(sphereGeometry, material);
     moonMesh.scale.set(0.5, 0.5, 0.5);
     moonMesh.position.set(4, 0, 0); // orbit around Earth
     moonOrbit.add(moonMesh);
@@ -409,6 +414,55 @@ function solarSystemScene2() {
     marsMesh.position.set(60, 0, 0); // further from the sun
     marsOrbit.add(marsMesh);
   });
+
+
+  // Add space ship
+  const spaceShipSpace = new THREE.Object3D();
+  spaceShipSpace.position.set(10, 0, 0);
+  scene.add(spaceShipSpace);
+  
+  let spaceshipMesh;
+  {
+    const loader = new GLTFLoader();
+    loader.load('space-ship/scene.gltf', (gltf) => {
+      spaceshipMesh = gltf.scene;
+      spaceshipMesh.scale.set(0.5, 0.5, 0.5);
+      spaceshipMesh.position.set(0, 0, 0); // position the spaceship
+      spaceshipMesh.lookAt(0, 0, 0); // make the spaceship look at the origin
+
+      spaceShipSpace.add(spaceshipMesh);
+    });
+  }
+
+  // Add spaceship controls
+  canvas.addEventListener( 'keydown', ( e ) => {
+
+    switch ( e.key ) {
+      case 'ArrowUp':
+        if (spaceShipSpace) {
+          const worldDirection = spaceShipSpace.getWorldDirection(new THREE.Vector3());
+          spaceShipSpace.position.addScaledVector(worldDirection, 0.1); // move forward in the direction the spaceship is facing
+        }
+        break;
+      case 'ArrowDown':
+        if (spaceShipSpace) spaceShipSpace.position.y -= 0.1;
+        break;
+      case 'ArrowLeft':
+        if (spaceShipSpace) spaceShipSpace.rotation.y -= 0.1;
+        break;
+      case 'ArrowRight':
+        if (spaceShipSpace) spaceShipSpace.rotation.y += 0.1;
+        break;
+      case 'w':
+        if (spaceShipSpace) spaceShipSpace.position.z += 1; // move forward
+        break;
+      case 's':
+        if (spaceShipSpace) spaceShipSpace.position.z -= 1; // move backward
+        break;
+    }
+
+	} );
+
 
   // 🔄 Render loop
   function render(time) {
@@ -430,6 +484,7 @@ function solarSystemScene2() {
     marsOrbit.rotation.y = time * 0.15; // slower orbit around Sun
 
     // Self-rotation
+    if (sunMesh) sunMesh.rotation.y = time * 0.5;
     if (earthMesh) earthMesh.rotation.y = time * 1.0;
     if (marsMesh) marsMesh.rotation.y = time * 0.8;
 
@@ -443,4 +498,38 @@ function solarSystemScene2() {
 
 
 solarSystemScene2();
+
+document.querySelectorAll( 'canvas' ).forEach( ( canvas ) => {
+
+	const ctx = canvas.getContext( '2d' );
+
+	function draw( str ) {
+
+		ctx.clearRect( 0, 0, canvas.width, canvas.height );
+		// ctx.textAlign = 'center';
+		// ctx.textBaseline = 'middle';
+		ctx.fillText( str, 0 , 10)
+	}
+
+	// draw( canvas.id );
+
+	canvas.addEventListener( 'focus', () => {
+
+		draw( 'has focus press a key' );
+
+	} );
+
+	canvas.addEventListener( 'blur', () => {
+
+		draw( 'lost focus' );
+
+	} );
+
+	document.addEventListener( 'keydown', ( e ) => {
+
+		draw( `keyCode: ${e.key}` );
+
+	} );
+
+} );
 // 
