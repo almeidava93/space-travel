@@ -181,9 +181,9 @@ function solarSystemScene() {
 
     // position the camera up in the z axis to see scene from above
     {
-      camera.position.z = 120;
-      camera.position.x = 80;
-      camera.position.y = 80;
+      camera.position.z = 5;
+      camera.position.x = 60;
+      camera.position.y = 60;
       camera.lookAt(0, 0, 0); // make the camera look at the origin
     }
 
@@ -228,7 +228,19 @@ function solarSystemScene() {
     scene.add(solarSystem);
     solarSystemObjects.push(solarSystem);
     
-    // create the sun
+    // create scene graph node for the earth orbit that will contain the earth and the moon orbit
+    const earthOrbit = new THREE.Object3D();
+    earthOrbit.position.x = 10;
+    solarSystem.add(earthOrbit);
+    solarSystemObjects.push(earthOrbit);
+    
+    // create scene graph node for the moon orbit that will contain the moon mesh
+    const moonOrbit = new THREE.Object3D();
+    moonOrbit.position.set(30, 0, 0);
+    earthOrbit.add(moonOrbit);
+    solarSystemObjects.push(moonOrbit);
+    
+    // create the @sun
     const sunTextureLoader = new THREE.TextureLoader();
     sunTextureLoader.load('sun-texture.jpg', (texture) => {
       const sunMaterial = new THREE.MeshBasicMaterial({map: texture});
@@ -236,16 +248,7 @@ function solarSystemScene() {
       sunMesh.scale.set(5, 5, 5);  // make the sun large
       solarSystem.add(sunMesh);
       solarSystemObjects.push(sunMesh);
-
-      // animate the sun to rotate
-      function render(time) {
-          time *= 0.001;  // convert milliseconds to seconds
-          renderer.render(scene, camera);
-          sunMesh.rotation.y = time * 0.1; // rotate the sun
-          requestAnimationFrame(render);
-      }
-      requestAnimationFrame(render);
-    })
+    });
 
     {
       const color = 0xFFFFFF;
@@ -254,25 +257,29 @@ function solarSystemScene() {
       scene.add(light);
     }
 
-    // create the earth
+    // create the @earth
     {
       const textureLoader = new THREE.TextureLoader();
       textureLoader.load('earth-texture.jpg', (texture) => {
         const sunMaterial = new THREE.MeshPhongMaterial({map: texture, shininess: 100});
         const earthMesh = new THREE.Mesh(sphereGeometry, sunMaterial);
         earthMesh.scale.set(2, 2, 2);  // make the sun large
-        earthMesh.position.set(60, 0, 0); // position the earth at a distance from the sun
-        solarSystem.add(earthMesh);
+        earthMesh.position.set(30, 0, 0); // position the earth at a distance from the sun
+        earthOrbit.add(earthMesh);
         solarSystemObjects.push(earthMesh);
-
-        // animate the sun to rotate
-        function render(time) {
-            time *= 0.001;  // convert milliseconds to seconds
-            renderer.render(scene, camera);
-            earthMesh.rotation.y = time * 0.5; // rotate the sun
-            requestAnimationFrame(render);
-        }
-        requestAnimationFrame(render);
+      })
+    }
+    
+    // create the @moon
+    {
+      const textureLoader = new THREE.TextureLoader();
+      textureLoader.load('moon-texture.jpg', (texture) => {
+        const moonMaterial = new THREE.MeshPhongMaterial({map: texture, shininess: 100});
+        const moonMesh = new THREE.Mesh(sphereGeometry, moonMaterial);
+        moonMesh.scale.set(0.5, 0.5, 0.5);  // make the sun large
+        moonMesh.position.set(4, 0, 0); // position the earth at a distance from the sun
+        moonOrbit.add(moonMesh);
+        solarSystemObjects.push(moonMesh);
       })
     }
 
@@ -297,11 +304,13 @@ function solarSystemScene() {
 
         stars.rotation.x = time * 0.002; // rotations are in radians, one complete rotation is 2 * Math.PI radians, about 6.28 seconds from page load
         stars.rotation.y = time * 0.002;
-
-        solarSystemObjects.forEach((obj) => {
-          obj.rotation.y = time*0.5;
-        });
         
+        solarSystemObjects.forEach( ( obj ) => {
+
+          obj.rotation.y = time * 0.1;
+
+        } );
+
         renderer.render(scene, camera);
         
         requestAnimationFrame(render);
@@ -309,10 +318,129 @@ function solarSystemScene() {
     requestAnimationFrame(render); // requestAnimationFrame passes the time since the page loaded to our function in milliseconds
 }
 
+function solarSystemScene2() {
+  const canvas = document.querySelector('#c');
+  const renderer = new THREE.WebGLRenderer({ antialias: true, canvas });
 
-solarSystemScene();
+  const fov = 75;
+  const aspect = 2;
+  const near = 0.1;
+  const far = 3000;
+  const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
+  camera.position.set(80, 80, 120);
+  camera.lookAt(0, 0, 0);
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color('#000000');
+
+  // ⭐ Stars background
+  const vertices = [];
+  for (let i = 0; i < 10000; i++) {
+    vertices.push(
+      THREE.MathUtils.randFloatSpread(4000),
+      THREE.MathUtils.randFloatSpread(4000),
+      THREE.MathUtils.randFloatSpread(4000)
+    );
+  }
+
+  const textureLoader = new THREE.TextureLoader();
+  const starTexture = textureLoader.load('white-circle.png');
+
+  const starGeometry = new THREE.BufferGeometry();
+  starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+  const starMaterial = new THREE.PointsMaterial({ map: starTexture, size: 0.5 });
+  const stars = new THREE.Points(starGeometry, starMaterial);
+  scene.add(stars);
+
+  // ☀️ Solar system root
+  const solarSystem = new THREE.Object3D();
+  scene.add(solarSystem);
+
+  const sphereGeometry = new THREE.SphereGeometry(1, 32, 32);
+
+  // ☀️ Sun
+  textureLoader.load('sun-texture.jpg', (texture) => {
+    const sunMaterial = new THREE.MeshBasicMaterial({ map: texture });
+    const sunMesh = new THREE.Mesh(sphereGeometry, sunMaterial);
+    sunMesh.scale.set(5, 5, 5);
+    solarSystem.add(sunMesh);
+  });
+
+  // 💡 Light source
+  scene.add(new THREE.PointLight(0xffffff, 5000));
+
+  // 🌍 Earth
+  const earthOrbit = new THREE.Object3D();
+  earthOrbit.position.x = 0;
+  solarSystem.add(earthOrbit);
+
+  let earthMesh;
+  textureLoader.load('earth-texture.jpg', (texture) => {
+    const material = new THREE.MeshPhongMaterial({ map: texture, shininess: 100 });
+    earthMesh = new THREE.Mesh(sphereGeometry, material);
+    earthMesh.scale.set(2, 2, 2);
+    earthMesh.position.set(30, 0, 0);
+    earthOrbit.add(earthMesh);
+  });
+
+  // 🌕 Moon
+  const moonOrbit = new THREE.Object3D();
+  moonOrbit.position.set(30, 0, 0); // orbit around Earth
+  earthOrbit.add(moonOrbit);
+
+  textureLoader.load('moon-texture.jpg', (texture) => {
+    const material = new THREE.MeshPhongMaterial({ map: texture, shininess: 100 });
+    const moonMesh = new THREE.Mesh(sphereGeometry, material);
+    moonMesh.scale.set(0.5, 0.5, 0.5);
+    moonMesh.position.set(4, 0, 0); // orbit around Earth
+    moonOrbit.add(moonMesh);
+  });
+
+  // 🔴 Mars
+  const marsOrbit = new THREE.Object3D();
+  marsOrbit.position.set(0, 0, 0);
+  solarSystem.add(marsOrbit);
+
+  let marsMesh;
+  textureLoader.load('mars-texture.jpg', (texture) => {
+    const material = new THREE.MeshPhongMaterial({ map: texture, shininess: 100 });
+    marsMesh = new THREE.Mesh(sphereGeometry, material);
+    marsMesh.scale.set(1.5, 1.5, 1.5);
+    marsMesh.position.set(60, 0, 0); // further from the sun
+    marsOrbit.add(marsMesh);
+  });
+
+  // 🔄 Render loop
+  function render(time) {
+    time *= 0.001;
+
+    camera.aspect = canvas.clientWidth / canvas.clientHeight;
+    camera.updateProjectionMatrix();
+    if (resizeRendererToDisplaySize(renderer)) {
+      camera.aspect = canvas.clientWidth / canvas.clientHeight;
+      camera.updateProjectionMatrix();
+    }
+
+    stars.rotation.x = time * 0.002;
+    stars.rotation.y = time * 0.002;
+
+    // Orbital rotation
+    earthOrbit.rotation.y = time * 0.1;
+    moonOrbit.rotation.y = time * 0.5; // faster moon orbit around Earth
+    marsOrbit.rotation.y = time * 0.15; // slower orbit around Sun
+
+    // Self-rotation
+    if (earthMesh) earthMesh.rotation.y = time * 1.0;
+    if (marsMesh) marsMesh.rotation.y = time * 0.8;
+
+    renderer.render(scene, camera);
+    requestAnimationFrame(render);
+  }
+
+  requestAnimationFrame(render);
+}
 
 
 
-// main();
-
+solarSystemScene2();
+// 
