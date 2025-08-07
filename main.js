@@ -328,27 +328,23 @@ function solarSystemScene2() {
   const near = 0.1;
   const far = 3000;
   const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
-  camera.position.set(0, 15, 20);
+  camera.position.set(0, 0, 4);
   camera.lookAt(0, 0, 0);
 
   const scene = new THREE.Scene();
-  // scene.background = new THREE.Color('#000000');
-  scene.background = new THREE.Color('#3a2e2e');
+  scene.background = new THREE.Color('#ffffff');
 
-  // ⭐ Stars background
+  // 🌌 Stars background
   const vertices = [];
-
   for (let i = 0; i < 10000; i++) {
     vertices.push(
-      THREE.MathUtils.randFloatSpread(8000, 10000),
-      THREE.MathUtils.randFloatSpread(8000, 10000),
-      THREE.MathUtils.randFloatSpread(8000, 10000)
+      THREE.MathUtils.randFloatSpread(8000),
+      THREE.MathUtils.randFloatSpread(8000),
+      THREE.MathUtils.randFloatSpread(8000)
     );
   }
-
   const textureLoader = new THREE.TextureLoader();
   const starTexture = textureLoader.load('white-circle.png');
-
   const starGeometry = new THREE.BufferGeometry();
   starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
   const starMaterial = new THREE.PointsMaterial({ map: starTexture, size: 0.5 });
@@ -367,17 +363,17 @@ function solarSystemScene2() {
     const sunMaterial = new THREE.MeshBasicMaterial({ map: texture });
     sunMesh = new THREE.Mesh(sphereGeometry, sunMaterial);
     sunMesh.scale.set(5, 5, 5);
-    solarSystem.add(sunMesh);
+    // solarSystem.add(sunMesh);
   });
 
-  // 💡 Light source
-  scene.add(new THREE.PointLight(0xffffff, 8000));
+
+  const sunLight = new THREE.PointLight(0xFFFFFF, 3000);
+  sunLight.position.set(0, 0, 20);
+  scene.add(sunLight);
 
   // 🌍 Earth
   const earthOrbit = new THREE.Object3D();
-  earthOrbit.position.x = 0;
   solarSystem.add(earthOrbit);
-
   let earthMesh;
   textureLoader.load('earth-texture.jpg', (texture) => {
     const material = new THREE.MeshPhongMaterial({ map: texture, shininess: 100 });
@@ -389,87 +385,110 @@ function solarSystemScene2() {
 
   // 🌕 Moon
   const moonOrbit = new THREE.Object3D();
-  moonOrbit.position.set(30, 0, 0); // orbit around Earth
+  moonOrbit.position.set(30, 0, 0);
   earthOrbit.add(moonOrbit);
-
   let moonMesh;
   textureLoader.load('moon-texture.jpg', (texture) => {
     const material = new THREE.MeshPhongMaterial({ map: texture, shininess: 100 });
     moonMesh = new THREE.Mesh(sphereGeometry, material);
     moonMesh.scale.set(0.5, 0.5, 0.5);
-    moonMesh.position.set(4, 0, 0); // orbit around Earth
+    moonMesh.position.set(4, 0, 0);
     moonOrbit.add(moonMesh);
   });
 
   // 🔴 Mars
   const marsOrbit = new THREE.Object3D();
-  marsOrbit.position.set(0, 0, 0);
   solarSystem.add(marsOrbit);
-
   let marsMesh;
   textureLoader.load('mars-texture.jpg', (texture) => {
     const material = new THREE.MeshPhongMaterial({ map: texture, shininess: 100 });
     marsMesh = new THREE.Mesh(sphereGeometry, material);
     marsMesh.scale.set(1.5, 1.5, 1.5);
-    marsMesh.position.set(60, 0, 0); // further from the sun
+    marsMesh.position.set(60, 0, 0);
     marsOrbit.add(marsMesh);
   });
 
-
-  // Add space ship
+  // 🛸 Spaceship
   const spaceShipSpace = new THREE.Object3D();
-  spaceShipSpace.position.set(10, 0, 0);
-  scene.add(spaceShipSpace);
-  
-  let spaceshipMesh;
+  spaceShipSpace.position.set(0, 0, 0);
+  solarSystem.add(spaceShipSpace);
+
+  let centeredWrapper = null;
+
   {
     const loader = new GLTFLoader();
     loader.load('space-ship/scene.gltf', (gltf) => {
-      spaceshipMesh = gltf.scene;
+      const spaceshipMesh = gltf.scene;
       spaceshipMesh.scale.set(0.5, 0.5, 0.5);
-      spaceshipMesh.position.set(0, 0, 0); // position the spaceship
-      spaceshipMesh.lookAt(0, 0, 0); // make the spaceship look at the origin
+      spaceshipMesh.rotation.set(0.2, 0, -0.3); // Adjust rotation to face forward
 
-      spaceShipSpace.add(spaceshipMesh);
+      // Centering
+      const bbox = new THREE.Box3().setFromObject(spaceshipMesh);
+      const center = new THREE.Vector3();
+      bbox.getCenter(center);
+      spaceshipMesh.position.sub(center); // Center the model
+
+      // Wrapper
+      centeredWrapper = new THREE.Object3D();
+      centeredWrapper.add(spaceshipMesh);
+      spaceShipSpace.add(centeredWrapper);
+
+      // Add axis to visualize orientation
+      const axes = new THREE.AxesHelper(2);
+      axes.material.depthTest = false;
+      axes.renderOrder = 1;
+      centeredWrapper.add(axes);
     });
   }
 
-  // Add spaceship controls
-  canvas.addEventListener( 'keydown', ( e ) => {
+  // 🕹 Controls
+  window.addEventListener('keydown', (e) => {
+    if (!centeredWrapper) return;
 
-    switch ( e.key ) {
-      case 'ArrowUp':
-        if (spaceShipSpace) {
-          const worldDirection = spaceShipSpace.getWorldDirection(new THREE.Vector3());
-          spaceShipSpace.position.addScaledVector(worldDirection, 0.1); // move forward in the direction the spaceship is facing
-        }
+    switch (e.key) {
+      case 'ArrowUp': {
+        const dir = new THREE.Vector3();
+        centeredWrapper.getWorldDirection(dir);
+        centeredWrapper.position.addScaledVector(dir, 0.2);
         break;
-      case 'ArrowDown':
-        if (spaceShipSpace) spaceShipSpace.position.y -= 0.1;
+      }
+      case 'ArrowDown':{
+        const dir = new THREE.Vector3();
+        centeredWrapper.getWorldDirection(dir);
+        centeredWrapper.position.addScaledVector(dir, -0.2);
         break;
+      }
       case 'ArrowLeft':
-        if (spaceShipSpace) spaceShipSpace.rotation.y -= 0.1;
+        centeredWrapper.rotation.y += 0.1;
         break;
       case 'ArrowRight':
-        if (spaceShipSpace) spaceShipSpace.rotation.y += 0.1;
+        centeredWrapper.rotation.y -= 0.1;
         break;
       case 'w':
-        if (spaceShipSpace) spaceShipSpace.position.z += 1; // move forward
+        camera.position.z -= 0.1;
         break;
       case 's':
-        if (spaceShipSpace) spaceShipSpace.position.z -= 1; // move backward
+        camera.position.z += 0.1;
+        break;
+      case 'a':
+        camera.position.x -= 0.1;
+        break;
+      case 'd':
+        camera.position.x += 0.1;
+        break;
+      case 'r':
+        camera.position.y += 0.1;
+        break;
+      case 'f':
+        camera.position.y -= 0.1;
         break;
     }
+  });
 
-	} );
-
-
-  // 🔄 Render loop
+  // 🎥 Render loop
   function render(time) {
     time *= 0.001;
 
-    camera.aspect = canvas.clientWidth / canvas.clientHeight;
-    camera.updateProjectionMatrix();
     if (resizeRendererToDisplaySize(renderer)) {
       camera.aspect = canvas.clientWidth / canvas.clientHeight;
       camera.updateProjectionMatrix();
@@ -478,12 +497,10 @@ function solarSystemScene2() {
     stars.rotation.x = time * 0.002;
     stars.rotation.y = time * 0.002;
 
-    // Orbital rotation
     earthOrbit.rotation.y = time * 0.1;
-    moonOrbit.rotation.y = time * 0.5; // faster moon orbit around Earth
-    marsOrbit.rotation.y = time * 0.15; // slower orbit around Sun
+    moonOrbit.rotation.y = time * 0.5;
+    marsOrbit.rotation.y = time * 0.15;
 
-    // Self-rotation
     if (sunMesh) sunMesh.rotation.y = time * 0.5;
     if (earthMesh) earthMesh.rotation.y = time * 1.0;
     if (marsMesh) marsMesh.rotation.y = time * 0.8;
@@ -497,39 +514,5 @@ function solarSystemScene2() {
 
 
 
+
 solarSystemScene2();
-
-document.querySelectorAll( 'canvas' ).forEach( ( canvas ) => {
-
-	const ctx = canvas.getContext( '2d' );
-
-	function draw( str ) {
-
-		ctx.clearRect( 0, 0, canvas.width, canvas.height );
-		// ctx.textAlign = 'center';
-		// ctx.textBaseline = 'middle';
-		ctx.fillText( str, 0 , 10)
-	}
-
-	// draw( canvas.id );
-
-	canvas.addEventListener( 'focus', () => {
-
-		draw( 'has focus press a key' );
-
-	} );
-
-	canvas.addEventListener( 'blur', () => {
-
-		draw( 'lost focus' );
-
-	} );
-
-	document.addEventListener( 'keydown', ( e ) => {
-
-		draw( `keyCode: ${e.key}` );
-
-	} );
-
-} );
-// 
