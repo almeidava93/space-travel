@@ -1,9 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-
-
-
 // Relevant variables
 
 // sizes in 1,000 km
@@ -29,7 +26,7 @@ const spaceShipStartingPosition = new THREE.Vector3(0, 0, distanceFromSun + 10);
 
 // Options
 const options = {
-  addStars: false, // Add stars background
+  addStars: true, // Add stars background
 }
 
 /**
@@ -178,6 +175,7 @@ function solarSystemScene() {
   const loader = new GLTFLoader();
   loader.load('space-ship/scene.gltf', (gltf) => {
     const spaceshipMesh = gltf.scene;
+    console.log(' Animations:',spaceshipMesh.animations);
     spaceshipMesh.scale.set(0.05, 0.05, 0.05);
     spaceshipMesh.rotation.set(0.2, 0, -0.3); // Adjust rotation to face forward
 
