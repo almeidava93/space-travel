@@ -2,6 +2,13 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 // Relevant variables
+const MOVE_SPEED = 40;    // units per second
+const ROT_SPEED  = 1.8;   // radians per second
+let prevT = 0; // is just a variable to remember the previous frame’s timestamp in the render loop. We then use dt to make movement frame-rate independent: If your FPS drops, the ship still moves the same distance per second because movement speed is multiplied by dt.
+let lastPos = null; // THREE.Vector3
+let speedUnitsPerSec = 0; // in "scene units / s" (your units = thousand km)
+const _tmpShipCenter = new THREE.Vector3();
+const _tmpSunCenter  = new THREE.Vector3();
 
 // sizes in 1,000 km
 // Sun
@@ -21,13 +28,27 @@ const white = 0xFFFFFF;
 const spaceBackground = black;
 
 // spaceShip
-const spaceShipScale = 0.05; // Scale factor for the spaceship model
+const spaceShipScale = 0.0000001; // Scale factor for the spaceship model
+const spaceShipCameraPositionScale = 2 * spaceShipScale; // Scale factor for the spaceship camera position
 const spaceShipStartingPosition = new THREE.Vector3(0, 0, distanceFromSun + 10); // Start the spaceship a bit away from the Earth
+
+// Spaceship animation controls
+const MAX_BANK  = 0.35; // radians for left/right bank (roll)
+const MAX_PITCH = 0.20; // radians for nose up/down
+const TILT_SPRING = 5; // higher = snappier return
 
 // Options
 const options = {
   addStars: true, // Add stars background
 }
+
+const keys = new Set();
+window.addEventListener('keydown', (e) => {
+  // prevent page scrolling with arrows/space. Calling e.preventDefault() stops the browser’s default action, so your spaceship control logic isn’t interrupted by the page scrolling or focus jumping.
+  if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].includes(e.key)) e.preventDefault();
+  keys.add(e.code);     // use code: "KeyW", "ArrowUp" etc.
+});
+window.addEventListener('keyup',   (e) => keys.delete(e.code));
 
 /**
  * Checks if the renderer's canvas needs resizing to match display size and resizes it if necessary.
@@ -61,6 +82,9 @@ function resizeRendererToDisplaySize(renderer) {
 
 function solarSystemScene() {
   const canvas = document.querySelector('#c');
+  const hudSpeedEl = document.getElementById('hud-speed');
+  const hudDistEl  = document.getElementById('hud-dist');
+
   const renderer = new THREE.WebGLRenderer({ antialias: true, canvas });
 
   const fov = 75;
@@ -173,20 +197,43 @@ function solarSystemScene() {
 
   
   const loader = new GLTFLoader();
+  // Keep a handle to the loaded mesh and its base rotation
+  let shipVisual = null;
+  let shipBaseRot = new THREE.Euler();
+
   loader.load('space-ship/scene.gltf', (gltf) => {
     const spaceshipMesh = gltf.scene;
-    console.log(' Animations:',spaceshipMesh.animations);
-    spaceshipMesh.scale.set(0.05, 0.05, 0.05);
+    spaceshipMesh.scale.set(spaceShipScale, spaceShipScale, spaceShipScale);
     spaceshipMesh.rotation.set(0.2, 0, -0.3); // Adjust rotation to face forward
+
+    // Create a pivot and put the ship under it
+    const pivot = new THREE.Object3D();
+    centeredWrapper.add(pivot);
+    pivot.add(spaceshipMesh);
+
+    // Make sure transforms are current before measuring
+    spaceshipMesh.updateWorldMatrix(true, true);
 
     // Centering
     const bbox = new THREE.Box3().setFromObject(spaceshipMesh);
-    const center = new THREE.Vector3();
-    bbox.getCenter(center);
+    const center = bbox.getCenter(new THREE.Vector3());
     spaceshipMesh.position.sub(center); // Center the model
+    spaceshipMesh.updateWorldMatrix(true);
+     
+    // Add axis to visualize orientation
+    const axesSpaceshipMesh = new THREE.AxesHelper(2);
+    axesSpaceshipMesh.material.depthTest = false;
+    axesSpaceshipMesh.renderOrder = 1;
+    // spaceshipMesh.add(axesSpaceshipMesh);
+    
+    // Add axis to visualize orientation
+    const axesPivot = new THREE.AxesHelper(2);
+    axesPivot.material.depthTest = false;
+    axesPivot.renderOrder = 1;
+    // pivot.add(axesPivot);
 
     // Wrapper
-    centeredWrapper.add(spaceshipMesh);
+    centeredWrapper.add(pivot);
     spaceShipSpace.add(centeredWrapper);
 
     // Add axis to visualize orientation
@@ -195,64 +242,24 @@ function solarSystemScene() {
     axes.renderOrder = 1;
     // centeredWrapper.add(axes);
 
+    shipVisual = pivot;
+    shipBaseRot.copy(pivot.rotation);
+
     centeredWrapper.lookAt(new THREE.Vector3(0, 0, 0));
   });
   
-
   // Space ship camera
-  const spaceShipCamera = new THREE.PerspectiveCamera(75, 2, 0.1, Math.pow(10, 8));
-  spaceShipCamera.position.set(0.3, 1, -5).multiplyScalar(spaceShipScale * 2);
+  const spaceShipCamera = new THREE.PerspectiveCamera(75, 2, Math.pow(10, -15), Math.pow(10, 8));
+  spaceShipCamera.position.set(0.3, 1, -5).multiplyScalar(spaceShipCameraPositionScale);
   spaceShipCamera.rotation.x = 0.5;
   spaceShipCamera.lookAt(0, 0, 0);
   centeredWrapper.add(spaceShipCamera);
 
-  // 🕹 Controls
-  window.addEventListener('keydown', (e) => {
-    if (!centeredWrapper) return;
-
-    switch (e.key) {
-      case 'ArrowUp': {
-        const dir = new THREE.Vector3();
-        centeredWrapper.getWorldDirection(dir);
-        centeredWrapper.position.addScaledVector(dir, 10);
-        break;
-      }
-      case 'ArrowDown':{
-        const dir = new THREE.Vector3();
-        centeredWrapper.getWorldDirection(dir);
-        centeredWrapper.position.addScaledVector(dir, -10);
-        break;
-      }
-      case 'ArrowLeft':
-        centeredWrapper.rotation.y -= 0.03;
-        break;
-      case 'ArrowRight':
-        centeredWrapper.rotation.y += 0.03;
-        break;
-      case 'w':
-        camera.position.z -= 0.1;
-        break;
-      case 's':
-        camera.position.z += 0.1;
-        break;
-      case 'a':
-        camera.position.x -= 0.1;
-        break;
-      case 'd':
-        camera.position.x += 0.1;
-        break;
-      case 'r':
-        camera.position.y += 0.1;
-        break;
-      case 'f':
-        camera.position.y -= 0.1;
-        break;
-    }
-  });
-
   // 🎥 Render loop
   function render(time) {
     time *= 0.001;
+    const dt = Math.min(0.05, time - prevT); // clamp for stability
+    prevT = time;
 
     if (resizeRendererToDisplaySize(renderer)) {
       spaceShipCamera.aspect = canvas.clientWidth / canvas.clientHeight;
@@ -270,6 +277,77 @@ function solarSystemScene() {
     if (earthMesh) earthMesh.rotation.y = time * 0.0001;
     if (marsMesh) marsMesh.rotation.y = time * 0.8;
     if (moonMesh) moonMesh.rotation.y = time * 0.8;
+
+    // --- spaceship controls (simultaneous keys) ---
+    if (centeredWrapper) {
+      // directions in world space
+      const forward = new THREE.Vector3();
+      centeredWrapper.getWorldDirection(forward).normalize();
+
+      const up = new THREE.Vector3(0, 1, 0);
+      const right = new THREE.Vector3().crossVectors(forward, up).normalize();
+
+      // translation (W/S or ArrowUp/Down), strafe (A/D), vertical (R/F)
+      const move = new THREE.Vector3();
+      if (keys.has("KeyW") || keys.has("ArrowUp"))    move.add(forward);
+      if (keys.has("KeyS") || keys.has("ArrowDown"))  move.addScaledVector(forward, -1);
+      if (keys.has("KeyD"))                           move.add(right);
+      if (keys.has("KeyA"))                           move.addScaledVector(right, -1);
+      if (keys.has("KeyR"))                           move.add(up);
+      if (keys.has("KeyF"))                           move.addScaledVector(up, -1);
+
+      if (move.lengthSq() > 0) {
+        move.normalize().multiplyScalar(MOVE_SPEED * dt);
+        centeredWrapper.position.add(move);
+      }
+
+      // rotation: yaw (Left/Right), pitch (I/K), roll (Q/E)
+      const yaw   = (keys.has("ArrowLeft") ? 1 : 0) - (keys.has("ArrowRight") ? 1 : 0);
+      const pitch = (keys.has("KeyI") ? 1 : 0) - (keys.has("KeyK") ? 1 : 0);
+      const roll  = (keys.has("KeyE") ? 1 : 0) - (keys.has("KeyQ") ? 1 : 0);
+
+      if (yaw)   centeredWrapper.rotateOnWorldAxis(up, yaw * ROT_SPEED * dt);
+      if (pitch) centeredWrapper.rotateX(pitch * ROT_SPEED * dt);
+      if (roll)  centeredWrapper.rotateZ(-roll * ROT_SPEED * dt);
+
+      
+    }
+
+    if (shipVisual) {
+
+      // make sure world matrices are up to date
+      scene.updateMatrixWorld(true);
+      // update speedometer and distance overlay
+      if (!lastPos) lastPos = centeredWrapper.position.clone();
+      const currPos = centeredWrapper.position;
+      const frameDist = currPos.distanceTo(lastPos);      // units moved this frame
+      if (dt > 0) speedUnitsPerSec = frameDist / dt;      // units per second
+      lastPos.copy(currPos);
+
+      // distance to Sun (origin)
+      shipVisual.getWorldPosition(_tmpShipCenter);
+      sunMesh.getWorldPosition(_tmpSunCenter);
+      const distUnits = _tmpShipCenter.distanceTo(_tmpSunCenter); // because Sun is at (0,0,0)
+
+      // update HUD (units=thousand km -> label as kkm)
+      if (hudSpeedEl) hudSpeedEl.textContent = speedUnitsPerSec.toFixed(2);
+      if (hudDistEl)  hudDistEl.textContent  = distUnits.toFixed(0);
+
+      const upKey   = keys.has("KeyR");
+      const downKey = keys.has("KeyF");
+      const left  = keys.has("ArrowLeft");
+      const right = keys.has("ArrowRight");
+
+      const targetRoll  = (Number(right) - Number(left)) * MAX_BANK;              // bank right/left
+      const targetPitch = (Number(downKey) - Number(upKey)) * MAX_PITCH;          // nose up/down
+
+      // smooth approach to target (springy lerp)
+      const k = Math.min(1, TILT_SPRING * dt);
+      shipVisual.rotation.x += (shipBaseRot.x + targetPitch - shipVisual.rotation.x) * k;
+      shipVisual.rotation.z += (shipBaseRot.z + targetRoll  - shipVisual.rotation.z) * k;
+      // keep y from base so yaw visuals don’t accumulate
+      shipVisual.rotation.y = shipBaseRot.y;
+    }
 
     renderer.render(scene, spaceShipCamera);
     requestAnimationFrame(render);

@@ -14,10 +14,30 @@
         height: 100%;
         display: block;
         }
+        #hud {
+          position: fixed;
+          top: 12px;
+          left: 12px;
+          padding: 10px 12px;
+          background: rgba(0,0,0,0.55);
+          color: #fff;
+          font-family: system-ui, sans-serif;
+          font-size: 12px;
+          line-height: 1.4;
+          border-radius: 8px;
+          pointer-events: none; /* don’t block keyboard/mouse */
+          backdrop-filter: blur(4px);
+        }
+        #hud b { font-weight: 600; }
+
     </style>
   </head>
   <body>
     <script type="module" src="/main.js"></script>
     <canvas id="c" tabindex="0"></canvas>
+    <div id="hud">
+      <div><b>Speed:</b> <span id="hud-speed">0</span> kkm/s</div>
+      <div><b>Dist. to Sun:</b> <span id="hud-dist">0</span> kkm</div>
+    </div>
   </body>
 </html>
