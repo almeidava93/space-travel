@@ -1,0 +1,83 @@
+# Distances in 1000km
+
+spaceBackground = "black"
+addStars = true
+spaceShipStartingPosition = "earth"
+
+[colors]
+black = "#030303"
+white = "#ffffff"
+
+# 🌑 Sun
+[planets.sun]
+name = "Sun"
+diameter = 1392
+distanceFromOrbitCenter = 0
+texturePath = "sun/sun-texture.jpg"
+emissiveMapPath = "sun-texture.jpg"
+numberOfSegments = 128
+
+[planets.sun.otherMaterialProps]
+emissive = "#f3f3ee"
+emissiveIntensity = 2
+
+# 🌍 Earth
+[planets.earth]
+name = "Earth"
+diameter = 12.756
+distanceFromOrbitCenter = 149_600
+texturePath = "earth-texture.jpg"
+normalMapPath = "earth_normal_map.jpg"
+specularMapPath = "earth_specular_map.jpg"   
+emissiveMapPath = "earth-texture.jpg"
+numberOfSegments = 128
+ 
+[planets.earth.otherMaterialProps]
+emissive = "#f3f3ee"
+emissiveIntensity = 0.05
+
+
+# 🌕 Moon
+[moons.earthMoon]
+parentPlanet = "earth"
+name = "Earth Moon"
+diameter = 3.476
+distanceFromOrbitCenter = 384.4
+texturePath = "moon-texture.jpg" 
+normalMapPath = "moon-normal-map.jpg"
+emissiveMapPath = "moon-texture.jpg"
+numberOfSegments = 128
+ 
+[planets.earthMoon.otherMaterialProps]
+emissive = "#f3f3ee"
+emissiveIntensity = 0.1
+
+
+# 🔴 Mars
+[planets.mars]
+name = "Mars"
+diameter = 6.794
+distanceFromOrbitCenter = 227_900
+texturePath = "mars-texture.jpg"
+normalMapPath = "mars-normal-map.jpg"
+emissiveMapPath = "mars-texture.jpg"
+numberOfSegments = 128
+ 
+[planets.mars.otherMaterialProps]
+emissive = "#f3f3ee"
+emissiveIntensity = 0.05
+
+
+# 🔴 Mercury
+[planets.mercury]
+name = "Mercury"
+diameter = 4.880
+distanceFromOrbitCenter = 57_900
+texturePath = "mercury-texture.jpg"
+normalMapPath = "mercury-normal-map.jpg"
+emissiveMapPath = "mercury-texture.jpg"
+numberOfSegments = 128
+ 
+[planets.mercury.otherMaterialProps]
+emissive = "#f3f3ee"
+emissiveIntensity = 0.05

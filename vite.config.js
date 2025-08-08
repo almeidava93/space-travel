@@ -3,5 +3,6 @@ export default {
     base: '/three-demo/',
     build: {
       outDir: 'docs',
-    }
+    },
+
 }
