@@ -30,9 +30,25 @@
           backdrop-filter: blur(4px);
         }
         #hud b { font-weight: 600; }
-
+        #hud select { pointer-events: auto; }
+        #minimap-container {
+          position: fixed;
+          bottom: 20px;
+          right: 20px;
+          width: 200px;
+          height: 200px;
+          border: 2px solid rgba(255,255,255,0.6);
+          background: rgba(0,0,0,0.5);
+          border-radius: 8px;
+          overflow: hidden;
+        }
+        #minimap {
+          width: 100%;
+          height: 100%;
+          display: block;
+        }
     </style>
-    <script type="module" crossorigin src="/three-demo/assets/index-DTO3VsX5.js"></script>
+    <script type="module" crossorigin src="/three-demo/assets/index-BLyrs-RH.js"></script>
   </head>
   <body>
     <canvas id="c" tabindex="0"></canvas>
@@ -42,6 +58,22 @@
       <div><b>Dist. to Mars:</b> <span id="hud-dist-mars">0</span> kkm</div>
       <div><b>Dist. to Mercury:</b> <span id="hud-dist-mercury">0</span> kkm</div>
       <div><b>Dist. to Earth Moon:</b> <span id="hud-dist-earth-moon">0</span> kkm</div>
+      <label for="solar-body">Choose a celestial body:</label>
+      <select id="solar-body" name="solar-body" required>
+        <option value="" disabled selected>Select a body…</option>
+        <option value="sun">Sun</option>
+        <option value="mercury">Mercury</option>
+        <option value="venus" disabled>Venus</option>
+        <option value="earth" >Earth</option>
+        <option value="mars">Mars</option>
+        <option value="jupiter" disabled>Jupiter</option>
+        <option value="saturn" disabled>Saturn</option>
+        <option value="uranus" disabled>Uranus</option>
+        <option value="neptune" disabled>Neptune</option>
+      </select>
+    </div>
+    <div id="minimap-container">
+      <canvas id="minimap"></canvas>
     </div>
   </body>
 </html>

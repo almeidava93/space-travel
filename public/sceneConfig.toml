@@ -1,8 +1,9 @@
 # Distances in 1000km
+# Orbital period in years
 
 spaceBackground = "black"
 addStars = true
-spaceShipStartingPosition = "earth"
+spaceShipStartingPosition = "mars"
 
 [colors]
 black = "#030303"
@@ -31,6 +32,7 @@ normalMapPath = "earth_normal_map.jpg"
 specularMapPath = "earth_specular_map.jpg"   
 emissiveMapPath = "earth-texture.jpg"
 numberOfSegments = 128
+orbitalPeriod = 1
  
 [planets.earth.otherMaterialProps]
 emissive = "#f3f3ee"
@@ -47,6 +49,7 @@ texturePath = "moon-texture.jpg"
 normalMapPath = "moon-normal-map.jpg"
 emissiveMapPath = "moon-texture.jpg"
 numberOfSegments = 128
+orbitalPeriod = 0.0748
  
 [planets.earthMoon.otherMaterialProps]
 emissive = "#f3f3ee"
@@ -62,6 +65,7 @@ texturePath = "mars-texture.jpg"
 normalMapPath = "mars-normal-map.jpg"
 emissiveMapPath = "mars-texture.jpg"
 numberOfSegments = 128
+orbitalPeriod = 1.8821
  
 [planets.mars.otherMaterialProps]
 emissive = "#f3f3ee"
@@ -77,6 +81,7 @@ texturePath = "mercury-texture.jpg"
 normalMapPath = "mercury-normal-map.jpg"
 emissiveMapPath = "mercury-texture.jpg"
 numberOfSegments = 128
+orbitalPeriod = 0.2410
  
 [planets.mercury.otherMaterialProps]
 emissive = "#f3f3ee"
