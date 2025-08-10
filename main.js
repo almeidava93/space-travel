@@ -50,6 +50,16 @@ class SphericalAstronomicalObject {
       ...otherMaterialProps
     });
 
+    // make planet opaque
+    this.material.transparent = false;   // no blending
+    this.material.opacity = 1;           // fully opaque
+    // this.material.depthWrite = true;     // write depth normally
+    // this.material.depthTest = true;
+    this.material.side = THREE.FrontSide;
+    // if your diffuse PNG has an alpha channel, ignore it:
+    // this.material.alphaMap = null;
+    // if (this.texture) this.texture.premultiplyAlpha = false;
+
     this.numberOfSegments = numberOfSegments; // Number of segments for the sphere geometry
     this.geometry = new THREE.SphereGeometry(this.radius, numberOfSegments, numberOfSegments);
     this.mesh = new THREE.Mesh(this.geometry, this.material);
@@ -66,6 +76,62 @@ class SphericalAstronomicalObject {
     // create self rotation
     this.selfRotationSpeed = selfRotationSpeed;
 
+    // Add rings if any
+    if (this.name === 'Saturn') {
+      const innerR = 66.9 * Math.pow(10, 6);
+      const outerR = 270 * Math.pow(10, 6);
+      this.ringGeometry = new THREE.RingGeometry(
+        innerR,
+        outerR,
+        128,
+        1,
+        0,
+        Math.PI * 2
+      );
+
+      {
+        const pos = this.ringGeometry.attributes.position;
+        const uvs = new Float32Array((pos.count) * 2);
+        for (let i = 0; i < pos.count; i++) {
+          const x = pos.getX(i), y = pos.getY(i);
+          const r = Math.sqrt(x*x + y*y);
+          const theta = (Math.atan2(y, x) + Math.PI) / (2 * Math.PI); // 0..1
+          const u = (r - innerR) / (outerR - innerR);                  // 0..1 radial
+          const v = theta;                                             // 0..1 around
+          uvs[i*2+0] = u;
+          uvs[i*2+1] = v;
+        }
+        this.ringGeometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+      }
+
+      this.ringTexture = new THREE.TextureLoader().load('saturn/saturn-ring-texture.png', () => {
+        this.ringTexture.wrapS = THREE.ClampToEdgeWrapping;  // radial axis (no tiling across radius)
+        this.ringTexture.wrapT = THREE.RepeatWrapping;       // tile around the ring
+        this.ringTexture.repeat.set(1, 1);                   // 1 full turn; increase if you want “finer” tiling
+        // this.ringTexture.anisotropy = renderer.capabilities.getMaxAnisotropy?.() ?? 8;
+        // this.ringTexture.minFilter = THREE.LinearMipmapLinearFilter;
+        // this.ringTexture.magFilter = THREE.LinearFilter;
+      });
+
+      // 4) Material — use alpha in the PNG; depthWrite off avoids sorting artifacts
+      this.ringMaterial = new THREE.MeshBasicMaterial({
+        map: this.ringTexture,
+        transparent: true,     // keep opaque to avoid transparency sorting issues
+        depthWrite: true,
+        depthTest: true,    // CORRECT: Enable transparency to use the texture's alpha channel.
+        side: THREE.DoubleSide,
+      });
+
+      this.ringMesh = new THREE.Mesh(this.ringGeometry, this.ringMaterial);
+      this.ringMesh.position.set(0, 0, this.distanceFromOrbitCenter);
+      this.ringMesh.rotation.x = -Math.PI * 0.6;
+      this.orbit.add(this.ringMesh);
+
+      this.mesh.renderOrder = 0;       // planet
+      this.ringMesh.renderOrder = 1;   // ring (after planet)
+
+    }
+
   }
 }
 
@@ -78,8 +144,8 @@ class Spaceship {
     acceleration = 1, // meters per second squared
     maxAcceleration = 10_000_000, // meters per second squared
     baseAccelerationIncrease = 1_000_000, // proportion of increment per second
-    rotationSpeed = 1.5, // radians per second
     breakStrength = 0.5, // units per second squared
+    rotationSpeed = 0.5,
     spaceshipStartingPosition = new THREE.Vector3(
       -planetsData[sceneConfig.spaceShipStartingPosition].diameter * Math.pow(10, 6), 
       0, 
@@ -90,7 +156,7 @@ class Spaceship {
     fov = 75,
     near = 0.001,
     far = Math.pow(10, 15),
-    aspect = 2,
+    aspect = 2.5,
 
     // spaceship animation params
     maxBank = 0.35, // radians for left/right bank (roll)
@@ -101,12 +167,12 @@ class Spaceship {
     // save relevant spaceship params
     this.status = 'loading';
     this.maxSpeed = maxSpeed;
+    this.rotationSpeed = rotationSpeed;
     this.currentSpeed = currentSpeed;
     this.acceleration = acceleration;
     this.maxAcceleration = maxAcceleration;
     this.baseAccelerationIncrease = baseAccelerationIncrease;
     this.breakStrength = breakStrength;
-    this.rotationSpeed = rotationSpeed;
     this.spaceshipStartingPosition = spaceshipStartingPosition;
     this.pivot = new THREE.Object3D();
     this.centeredMesh = new THREE.Object3D();
@@ -117,6 +183,25 @@ class Spaceship {
 
     loader.load(spaceShipMeshPath, (spaceshipGltfModel) => {
       this.mesh = spaceshipGltfModel.scene;
+
+      // Make ship materials robust against transparency sorting issues
+      this.mesh.traverse((o) => {
+        if (!o.isMesh) return;
+        const mats = Array.isArray(o.material) ? o.material : [o.material];
+        mats.forEach((m) => {
+          if (!m) return;
+          // If any texture has alpha but you don't want translucency, treat as cutout:
+          // (keeps depthWrite on and avoids sorting headaches)
+          if (m.transparent) {
+            m.transparent = false;
+            m.alphaTest = 0.02;      // drop near-zero alpha pixels (decals/holes)
+          }
+          m.depthTest = true;
+          m.depthWrite = true;
+          m.side = THREE.FrontSide;  // avoid double-sided + transparency artifacts
+        });
+      });
+
       this.mesh.scale.set(scale, scale, scale);
       this.mesh.position.set(0, 0, 0);
       this.mesh.rotation.set(0.2, 0, -0.3); // Adjust rotation to face forward
@@ -155,7 +240,7 @@ class Spaceship {
 
       this.status = 'ready';
 
-      this.mesh.emissive = new THREE.Color('#d81212ff');
+      this.mesh.emissive = new THREE.Color('#d81212');
       this.mesh.emissiveIntensity = 1;
       
     });
@@ -268,7 +353,7 @@ function solarSystemScene() {
   const hudDistMercuryEl  = document.getElementById('hud-dist-mercury');
   const hudDistEarthMoonEl  = document.getElementById('hud-dist-earth-moon');
 
-  const renderer = new THREE.WebGLRenderer({ antialias: true, canvas });
+  const renderer = new THREE.WebGLRenderer({ logarithmicDepthBuffer: true,antialias: true, canvas });
 
   const fov = 75;
   const aspect = 2;
@@ -315,7 +400,7 @@ function solarSystemScene() {
   solarSystem.add(sunObject.mesh);
 
   // ☀️ Sun light 
-  const sunLight = new THREE.PointLight(0xFFFFFF, Math.pow(10, 2), Math.pow(10, 25), 0.1);
+  const sunLight = new THREE.PointLight(0xFFFFFF, 5, Math.pow(10, 25), 0);
   sunLight.position.set(0, 0, 0);
   scene.add(sunLight);
 
@@ -400,7 +485,8 @@ function solarSystemScene() {
 
   const minimapRenderer = new THREE.WebGLRenderer({
     canvas: document.getElementById('minimap'),
-    alpha: true
+    alpha: true,
+    logarithmicDepthBuffer: true
   });
   minimapRenderer.setSize(200, 200); // match CSS size
   
@@ -454,7 +540,6 @@ function solarSystemScene() {
 
     if (sunObject.mesh) sunObject.mesh.rotation.y = time * 0.1;
 
-
     // spaceship controls (simultaneous keys)
     if (spaceshipObject.pivot) {
 
@@ -491,12 +576,9 @@ function solarSystemScene() {
         spaceshipObject.pivot.position.add(move);
       }
 
-      console.log('Velocity',  spaceshipObject.currentSpeed);
-      console.log('Acceleration',  spaceshipObject.acceleration);
-
       // rotation: yaw (Left/Right)
       const yaw   = (keys.has("ArrowLeft") | keys.has("KeyA") ? 1 : 0) - (keys.has("ArrowRight") | keys.has("KeyD") ? 1 : 0);
-      if (yaw)   spaceshipObject.pivot.rotateOnWorldAxis(up, yaw * ROT_SPEED * dt);
+      if (yaw)   spaceshipObject.pivot.rotateOnWorldAxis(up, yaw * spaceshipObject.rotationSpeed * dt);
 
     }
 

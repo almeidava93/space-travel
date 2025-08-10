@@ -3,7 +3,7 @@
 
 spaceBackground = "black"
 addStars = true
-spaceShipStartingPosition = "mars"
+spaceShipStartingPosition = "saturn"
 
 [colors]
 black = "#030303"
@@ -115,3 +115,18 @@ orbitalPeriod = 11.86
 [planets.jupiter.otherMaterialProps]
 emissive = "#f3f3ee"
 emissiveIntensity = 0.05
+
+
+# 🔴 Saturn
+[planets.saturn]
+name = "Saturn"
+diameter = 120.536
+distanceFromOrbitCenter = 1_432_000
+texturePath = "saturn/saturn-texture.jpg"
+emissiveMapPath = "saturn/saturn-texture.jpg"
+numberOfSegments = 128
+orbitalPeriod = 29.37
+ 
+[planets.saturn.otherMaterialProps]
+emissive = "#f3f3ee"
+emissiveIntensity = 0.01
