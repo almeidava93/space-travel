@@ -100,3 +100,18 @@ orbitalPeriod = 0.2410
 [planets.mercury.otherMaterialProps]
 emissive = "#f3f3ee"
 emissiveIntensity = 0.05
+
+
+# 🔴 Jupiter
+[planets.jupiter]
+name = "Jupiter"
+diameter = 142.984
+distanceFromOrbitCenter = 778_300
+texturePath = "jupiter/jupiter-texture.jpg"
+emissiveMapPath = "jupiter/jupiter-texture.jpg"
+numberOfSegments = 128
+orbitalPeriod = 11.86
+ 
+[planets.jupiter.otherMaterialProps]
+emissive = "#f3f3ee"
+emissiveIntensity = 0.05

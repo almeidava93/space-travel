@@ -81,7 +81,7 @@ class Spaceship {
     rotationSpeed = 1.5, // radians per second
     breakStrength = 0.5, // units per second squared
     spaceshipStartingPosition = new THREE.Vector3(
-      -6000000, 
+      -planetsData[sceneConfig.spaceShipStartingPosition].diameter * Math.pow(10, 6), 
       0, 
       planetsData[sceneConfig.spaceShipStartingPosition].distanceFromOrbitCenter * Math.pow(10, 6) + planetsData[sceneConfig.spaceShipStartingPosition].diameter * Math.pow(10, 6)
     ), // Start the spaceship a bit away from the chosen planet in the config file
@@ -185,7 +185,7 @@ class Spaceship {
 
   moveTo(target) {
     const newPosition = new THREE.Vector3(
-      -6000000, 
+      -planetsData[target].diameter * Math.pow(10, 6), 
       0, 
       planetsData[target].distanceFromOrbitCenter * Math.pow(10, 6) + planetsData[target].diameter * Math.pow(10, 6)
     )
@@ -289,9 +289,9 @@ function solarSystemScene() {
     const vertices = [];
     for (let i = 0; i < 1000; i++) {
       vertices.push(
-        THREE.MathUtils.randFloatSpread(Math.pow(10, 12), Math.pow(10, 13)),
-        THREE.MathUtils.randFloatSpread(Math.pow(10, 12), Math.pow(10, 13)),
-        THREE.MathUtils.randFloatSpread(Math.pow(10, 12), Math.pow(10, 13))
+        THREE.MathUtils.randFloatSpread(Math.pow(10, 15), Math.pow(10, 16)),
+        THREE.MathUtils.randFloatSpread(Math.pow(10, 15), Math.pow(10, 16)),
+        THREE.MathUtils.randFloatSpread(Math.pow(10, 15), Math.pow(10, 16))
       );
     }
     const starTexture = textureLoader.load('white-circle.png');
@@ -315,7 +315,7 @@ function solarSystemScene() {
   solarSystem.add(sunObject.mesh);
 
   // ☀️ Sun light 
-  const sunLight = new THREE.PointLight(0xFFFFFF, Math.pow(10, 23), Math.pow(10, 25));
+  const sunLight = new THREE.PointLight(0xFFFFFF, Math.pow(10, 2), Math.pow(10, 25), 0.1);
   sunLight.position.set(0, 0, 0);
   scene.add(sunLight);
 
