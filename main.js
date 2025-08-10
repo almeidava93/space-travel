@@ -89,7 +89,8 @@ class SphericalAstronomicalObject {
         Math.PI * 2
       );
 
-      {
+      { // apply texture to ring geometry
+        // see https://discourse.threejs.org/t/applying-a-texture-to-a-ringgeometry/9990/9 
         const pos = this.ringGeometry.attributes.position;
         const uvs = new Float32Array((pos.count) * 2);
         for (let i = 0; i < pos.count; i++) {
@@ -156,7 +157,7 @@ class Spaceship {
     fov = 75,
     near = 0.001,
     far = Math.pow(10, 15),
-    aspect = 2.5,
+    aspect = 2,
 
     // spaceship animation params
     maxBank = 0.35, // radians for left/right bank (roll)
@@ -353,7 +354,7 @@ function solarSystemScene() {
   const hudDistMercuryEl  = document.getElementById('hud-dist-mercury');
   const hudDistEarthMoonEl  = document.getElementById('hud-dist-earth-moon');
 
-  const renderer = new THREE.WebGLRenderer({ logarithmicDepthBuffer: true,antialias: true, canvas });
+  const renderer = new THREE.WebGLRenderer({ logarithmicDepthBuffer: true, antialias: true, canvas });
 
   const fov = 75;
   const aspect = 2;

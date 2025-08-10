@@ -124,9 +124,37 @@ diameter = 120.536
 distanceFromOrbitCenter = 1_432_000
 texturePath = "saturn/saturn-texture.jpg"
 emissiveMapPath = "saturn/saturn-texture.jpg"
-numberOfSegments = 128
+numberOfSegments = 64
 orbitalPeriod = 29.37
  
 [planets.saturn.otherMaterialProps]
+emissive = "#f3f3ee"
+emissiveIntensity = 0.01
+
+# 🔴 Uranus
+[planets.uranus]
+name = "Uranus"
+diameter = 51.118
+distanceFromOrbitCenter = 2_871_000
+texturePath = "uranus/uranus-texture.jpg"
+emissiveMapPath = "uranus/uranus-texture.jpg"
+numberOfSegments = 128
+orbitalPeriod = 84.099
+ 
+[planets.uranus.otherMaterialProps]
+emissive = "#f3f3ee"
+emissiveIntensity = 0.01
+
+# 🔴 Neptune
+[planets.neptune]
+name = "Neptune"
+diameter = 49.528
+distanceFromOrbitCenter = 4_498_000
+texturePath = "neptune/neptune-texture.jpg"
+emissiveMapPath = "neptune/neptune-texture.jpg"
+numberOfSegments = 128
+orbitalPeriod = 164.86
+ 
+[planets.neptune.otherMaterialProps]
 emissive = "#f3f3ee"
 emissiveIntensity = 0.01
