@@ -22,6 +22,20 @@ numberOfSegments = 128
 emissive = "#f3f3ee"
 emissiveIntensity = 2
 
+# Venus
+[planets.venus]
+name = "Venus"
+diameter = 12.104
+distanceFromOrbitCenter = 108_200
+texturePath = "venus/venus-surface-texture.jpg"
+emissiveMapPath = "venus/venus-surface-texture.jpg"
+numberOfSegments = 128
+orbitalPeriod = 0.6658
+ 
+[planets.venus.otherMaterialProps]
+emissive = "#f3f3ee"
+emissiveIntensity = 0.05
+
 # 🌍 Earth
 [planets.earth]
 name = "Earth"
