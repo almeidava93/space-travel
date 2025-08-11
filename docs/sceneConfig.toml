@@ -22,6 +22,10 @@ numberOfSegments = 128
 emissive = "#f3f3ee"
 emissiveIntensity = 2
 
+[planets.sun.positionalAudio]
+filePath = "audio/highway-to-hell.mp3"
+refDistance = 500
+
 # Venus
 [planets.venus]
 name = "Venus"
@@ -54,7 +58,7 @@ emissiveIntensity = 0.05
 
 [planets.earth.positionalAudio]
 filePath = "audio/faroeste-caboclo.mp3"
-refDistance = 100
+refDistance = 12
 
 # 🌕 Moon
 [moons.earthMoon]
@@ -68,9 +72,13 @@ emissiveMapPath = "moon-texture.jpg"
 numberOfSegments = 128
 orbitalPeriod = 0.0748
  
-[planets.earthMoon.otherMaterialProps]
+[moons.earthMoon.otherMaterialProps]
 emissive = "#f3f3ee"
 emissiveIntensity = 0.1
+
+[moons.earthMoon.positionalAudio]
+filePath = "audio/fly-me-to-the-moon.mp3"
+refDistance = 3.5
 
 
 # 🔴 Mars
