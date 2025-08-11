@@ -15,7 +15,7 @@ const mapSize = Math.pow(10, 11); // adjust for your scale
 
 // Planet class to work with the solar system
 class SphericalAstronomicalObject {
-  constructor({name, radius = null, diameter = null, distanceFromOrbitCenter, texturePath, normalMapPath = null, specularMapPath = null, emissiveMapPath = null, otherMaterialProps = {}, numberOfSegments = 64, orbitRotationSpeed = 0.00001, selfRotationSpeed = 0.1, orbitalPeriod = 1}) {
+  constructor({name, radius = null, diameter = null, distanceFromOrbitCenter, texturePath, normalMapPath = null, specularMapPath = null, emissiveMapPath = null, otherMaterialProps = {}, numberOfSegments = 64, orbitRotationSpeed = 0.00001, selfRotationSpeed = 0.1, orbitalPeriod = 1, positionalAudio = null}) {
 
     if (radius) {
       this.radius = radius;
@@ -25,6 +25,7 @@ class SphericalAstronomicalObject {
 
     this.name = name;
     this.distanceFromOrbitCenter = Math.pow(10, 6) * distanceFromOrbitCenter; // in meters
+    this.positionalAudio = positionalAudio;
 
     // Load textures and maps
     const textureLoader = new THREE.TextureLoader();
@@ -134,6 +135,26 @@ class SphericalAstronomicalObject {
     }
 
   }
+
+  loadPositionalAudio(listener) {
+    console.log(`Loading positional audio for ${this.name}`);
+    console.log(listener);
+    console.log(this.positionalAudio);
+    // create the PositionalAudio object (passing in the listener)
+    const sound = new THREE.PositionalAudio( listener );
+
+    // load a sound and set it as the PositionalAudio object's buffer
+    const audioLoader = new THREE.AudioLoader();
+    const refDistance = this.positionalAudio.refDistance * Math.pow(10, 6);
+    audioLoader.load( this.positionalAudio.filePath, function( buffer ) {
+      sound.setBuffer( buffer );
+      sound.setRefDistance( refDistance );
+      sound.play();
+    });
+
+    // add sound to mesh
+    this.mesh.add( sound );
+  }
 }
 
 class Spaceship {
@@ -180,7 +201,9 @@ class Spaceship {
 
     // load spaceship model
     const loader = new GLTFLoader(); 
-    // const spaceshipGltfModel = loader.load(spaceShipMeshPath);
+
+    // wait for spaceship to load
+    this.ready = new Promise((resolve) => { this._resolveReady = resolve; });
 
     loader.load(spaceShipMeshPath, (spaceshipGltfModel) => {
       this.mesh = spaceshipGltfModel.scene;
@@ -233,6 +256,11 @@ class Spaceship {
       this.camera.position.multiplyScalar(scale * 2); // scale the camera position to match the size of the spaceship
       this.camera.lookAt(0, 0, 0); // look at the origin of the space it is
       this.pivot.add(this.camera); // add the camera to the pivot, this will make it follow the center of the spaceship
+
+      // Add an audio listener to the camera
+      const listener = new THREE.AudioListener();
+      this.cameraListener = listener;
+      this.camera.add( listener );
   
       // spaceship animation params
       this.maxBank = maxBank; // radians for left/right bank (roll)
@@ -243,6 +271,8 @@ class Spaceship {
 
       this.mesh.emissive = new THREE.Color('#d81212');
       this.mesh.emissiveIntensity = 1;
+
+      this._resolveReady?.();   // signal that listener & camera exist
       
     });
   }
@@ -356,19 +386,10 @@ function solarSystemScene() {
 
   const renderer = new THREE.WebGLRenderer({ logarithmicDepthBuffer: true, antialias: true, canvas });
 
-  const fov = 75;
-  const aspect = 2;
-  const near = 0.1;
-  const far = 3000;
-  const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
-  camera.position.set(40, 40, 60);
-  camera.lookAt(0, 0, 0);
-
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(spaceBackground);
 
   // 🌌 Stars background
-  
   const textureLoader = new THREE.TextureLoader();
   let stars;
   if (sceneConfig.addStars) {
@@ -385,7 +406,6 @@ function solarSystemScene() {
     starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
     const starMaterial = new THREE.PointsMaterial({ map: starTexture, size: 0.5 });
     stars = new THREE.Points(starGeometry, starMaterial);
-    // const starsLights = new THREE.PointLight(sceneConfig.colors.white, 0.5, Math.pow(10, 25));
     scene.add(stars);
   }
 
@@ -408,6 +428,14 @@ function solarSystemScene() {
   // Add planets to the scene
   Object.keys(planetsData).forEach((planetName) => {
     const planetObject = new SphericalAstronomicalObject(planetsData[planetName]);
+
+    if (planetObject.positionalAudio) {
+      (async () => {
+        await spaceshipObject.ready;
+        planetObject.loadPositionalAudio(spaceshipObject.cameraListener);
+      })();
+    }
+
     solarSystem.add(planetObject.orbit);
     PLANETS[planetName] = planetObject;
   })

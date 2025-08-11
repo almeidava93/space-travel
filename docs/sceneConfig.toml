@@ -52,6 +52,9 @@ orbitalPeriod = 1
 emissive = "#f3f3ee"
 emissiveIntensity = 0.05
 
+[planets.earth.positionalAudio]
+filePath = "audio/faroeste-caboclo.mp3"
+refDistance = 100
 
 # 🌕 Moon
 [moons.earthMoon]
