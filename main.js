@@ -136,7 +136,10 @@ class SphericalAstronomicalObject {
 
   }
 
-  loadPositionalAudio(listener) {
+  loadPositionalAudio(camera) {
+    // Add an audio listener to the camera
+    const listener = new THREE.AudioListener();
+    camera.add( listener );
     console.log(`Loading positional audio for ${this.name}`);
     console.log(listener);
     console.log(this.positionalAudio);
@@ -256,11 +259,6 @@ class Spaceship {
       this.camera.position.multiplyScalar(scale * 2); // scale the camera position to match the size of the spaceship
       this.camera.lookAt(0, 0, 0); // look at the origin of the space it is
       this.pivot.add(this.camera); // add the camera to the pivot, this will make it follow the center of the spaceship
-
-      // Add an audio listener to the camera
-      const listener = new THREE.AudioListener();
-      this.cameraListener = listener;
-      this.camera.add( listener );
   
       // spaceship animation params
       this.maxBank = maxBank; // radians for left/right bank (roll)
@@ -432,7 +430,18 @@ function solarSystemScene() {
     if (planetObject.positionalAudio) {
       (async () => {
         await spaceshipObject.ready;
-        planetObject.loadPositionalAudio(spaceshipObject.cameraListener);
+
+        // Optional: browsers require a user gesture before audio can play
+        const resumeAudio = async () => {
+          const ctx = spaceshipObject.camera.context;
+          if (ctx && ctx.state === 'suspended') await ctx.resume();
+          window.removeEventListener('pointerdown', resumeAudio);
+          window.removeEventListener('keydown', resumeAudio);
+        };
+        window.addEventListener('pointerdown', resumeAudio, { once: true });
+        window.addEventListener('keydown', resumeAudio, { once: true });
+
+        planetObject.loadPositionalAudio(spaceshipObject.camera);
       })();
     }
 
@@ -444,6 +453,14 @@ function solarSystemScene() {
   Object.keys(moonsData).forEach((moonName) => {
     const moonObject = new SphericalAstronomicalObject(moonsData[moonName]);
     moonObject.orbit.position.set(0, 0, PLANETS[moonsData[moonName].parentPlanet].distanceFromOrbitCenter);
+
+    if (moonObject.positionalAudio) {
+      (async () => {
+        await spaceshipObject.ready;
+        moonObject.loadPositionalAudio(spaceshipObject.camera);
+      })();
+    }
+
     PLANETS[moonsData[moonName].parentPlanet].orbit.add(moonObject.orbit);
     MOONS[moonName] = moonObject;
   })
