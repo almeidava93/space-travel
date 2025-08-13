@@ -50,10 +50,10 @@ export class AudioManager {
         return audio;
     }
 
-    fadeTo(name, targetVolume, ms=300) {
+    fadeTo(name, targetVolume, ms=300, onDone=null) {
         const src = this.playing.get(name);
         if (!src) return;
-        this._fade(src, src.getVolume(), targetVolume, ms);
+        this._fade(src, src.getVolume(), targetVolume, ms, onDone);
     }
 
     _fade(src, v0, v1, ms, onDone) {
@@ -113,5 +113,12 @@ export class AudioManager {
         } else {
         src.stop(); this.playing.delete(name);
         }
+    }
+
+    reset(name) {
+        const src = this.playing.get(name);
+        if (!src) return;
+        src.setVolume(0);
+        src.stop();
     }
 }

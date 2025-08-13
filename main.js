@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import toml from 'toml';
+import { AudioManager } from './audio-manager.js';
+import { Trigger, TriggerManager } from './audio-trigger.js';
 
 async function loadTOML(path) {
   const response = await fetch(path);
@@ -273,6 +275,7 @@ class Spaceship {
       this._resolveReady?.();   // signal that listener & camera exist
       
     });
+    
   }
 
   addAxes(spaceshipAxes = true, pivotAxes = true) {
@@ -315,9 +318,9 @@ class Spaceship {
 const PLANETS = {};
 const MOONS = {};
 const spaceshipObject = new Spaceship();
+await spaceshipObject.ready;
 
 // Relevant variables
-const ROT_SPEED  = 1.5;   // radians per second
 let prevT = 0; // is just a variable to remember the previous frame’s timestamp in the render loop. We then use dt to make movement frame-rate independent: If your FPS drops, the ship still moves the same distance per second because movement speed is multiplied by dt.
 let lastPos = null; // THREE.Vector3
 const _tmpShipCenter = new THREE.Vector3();
@@ -374,6 +377,14 @@ function resizeRendererToDisplaySize(renderer) {
   return needResize;
 }
 
+const audio = new AudioManager(spaceshipObject.camera);
+const triggers = new TriggerManager();
+
+// Preload assets (do this once during init)
+await Promise.all([
+  audio.load('max_speed', 'https://archive.org/download/StarWarsThemeSongByJohnWilliams/Star%20Wars%20Theme%20Song%20By%20John%20Williams.mp3'),
+]);
+
 function solarSystemScene() {
   const canvas = document.querySelector('#c');
   const hudSpeedEl = document.getElementById('hud-speed');
@@ -381,6 +392,14 @@ function solarSystemScene() {
   const hudDistMarsEl  = document.getElementById('hud-dist-mars');
   const hudDistMercuryEl  = document.getElementById('hud-dist-mercury');
   const hudDistEarthMoonEl  = document.getElementById('hud-dist-earth-moon');
+
+  // Define the initial state of the scene.
+  const STATE = {
+    planets: {},
+    moons: {},
+    sun: {},
+    ship: {},
+  }
 
   const renderer = new THREE.WebGLRenderer({ logarithmicDepthBuffer: true, antialias: true, canvas });
 
@@ -418,6 +437,7 @@ function solarSystemScene() {
   const sunObject = new SphericalAstronomicalObject(planetsData.sun);
   solarSystem.add(sunObject.mesh);
 
+
   // ☀️ Sun light 
   const sunLight = new THREE.PointLight(0xFFFFFF, 5, Math.pow(10, 25), 0);
   sunLight.position.set(0, 0, 0);
@@ -428,21 +448,17 @@ function solarSystemScene() {
     const planetObject = new SphericalAstronomicalObject(planetsData[planetName]);
 
     if (planetObject.positionalAudio) {
-      (async () => {
-        await spaceshipObject.ready;
+      // Optional: browsers require a user gesture before audio can play
+      const resumeAudio = async () => {
+        const ctx = spaceshipObject.camera.context;
+        if (ctx && ctx.state === 'suspended') await ctx.resume();
+        window.removeEventListener('pointerdown', resumeAudio);
+        window.removeEventListener('keydown', resumeAudio);
+      };
+      window.addEventListener('pointerdown', resumeAudio, { once: true });
+      window.addEventListener('keydown', resumeAudio, { once: true });
 
-        // Optional: browsers require a user gesture before audio can play
-        const resumeAudio = async () => {
-          const ctx = spaceshipObject.camera.context;
-          if (ctx && ctx.state === 'suspended') await ctx.resume();
-          window.removeEventListener('pointerdown', resumeAudio);
-          window.removeEventListener('keydown', resumeAudio);
-        };
-        window.addEventListener('pointerdown', resumeAudio, { once: true });
-        window.addEventListener('keydown', resumeAudio, { once: true });
-
-        planetObject.loadPositionalAudio(spaceshipObject.camera);
-      })();
+      // planetObject.loadPositionalAudio(spaceshipObject.camera);
     }
 
     solarSystem.add(planetObject.orbit);
@@ -457,7 +473,7 @@ function solarSystemScene() {
     if (moonObject.positionalAudio) {
       (async () => {
         await spaceshipObject.ready;
-        moonObject.loadPositionalAudio(spaceshipObject.camera);
+        // moonObject.loadPositionalAudio(spaceshipObject.camera);
       })();
     }
 
@@ -556,8 +572,63 @@ function solarSystemScene() {
   let shipBaseRot = new THREE.Euler();
   shipBaseRot.copy(spaceshipObject.centeredMesh.rotation);
 
+  function updateState() {
+    // Update state object
+    STATE.ship.position = spaceshipObject.pivot.position;
+    STATE.ship.currentSpeed = spaceshipObject.currentSpeed;
+    STATE.ship.isAtMaxSpeed = spaceshipObject.currentSpeed >= spaceshipObject.maxSpeed;
+
+    STATE.sun.position = sunObject.mesh.position.clone();
+    STATE.sun.rotation = sunObject.mesh.rotation.clone();
+    STATE.sun.distanceToShip = STATE.sun.position.distanceTo(STATE.ship.position);
+    
+    // Update state regarding planets
+    Object.entries(PLANETS).forEach(([key, p]) => {
+      STATE.planets[key] = { 
+        position: p.mesh.position, 
+        rotation: p.mesh.rotation, 
+        distanceToShip: p.mesh.position.distanceTo(STATE.ship.position),
+      };
+    });
+
+    // Add a marker for each moon + initial position
+    Object.entries(MOONS).forEach(([key, m]) => {
+      STATE.moons[key] = {
+        position: m.mesh.position,
+        rotation: m.mesh.rotation,
+        distanceToShip: m.mesh.position.distanceTo(STATE.ship.position),
+      }
+    });
+
+    console.log(STATE);
+  }
+
+  // Initialize state
+  updateState();
+
+
+  triggers.add(new Trigger({
+    id: 'max_speed',
+    condition: (state) => state.ship.currentSpeed >= spaceshipObject.maxSpeed,
+    onEnter: () => {
+      const a = audio.playGlobal('max_speed', { loop: false, volume: 0.8, fadeMs: 0 });
+    },
+    onExit: () => {
+      audio.fadeTo('max_speed', 0, 10000, () => {
+        audio.stop('max_speed');
+      });
+    },
+    once: false,
+    cooldownMs: 2000, // don’t spam
+  }));
+
   // 🎥 Render loop
   function render(time) {
+    // update state object
+    updateState();
+
+    triggers.update(STATE);
+
     // wait for space ship to be loaded
     if (spaceshipObject.status !== 'ready') return requestAnimationFrame(render);
 

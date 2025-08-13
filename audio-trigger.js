@@ -10,6 +10,7 @@ export class Trigger {
     this._lastFire = -Infinity;
     this._firedOnce = false;
   }
+
   update(state, nowMs) {
     if (this.once && this._firedOnce) return;
     if (nowMs - this._lastFire < this.cooldownMs) return;
@@ -35,3 +36,4 @@ export class TriggerManager {
     for (const t of this.triggers) t.update(state, now);
   }
 }
+ 
