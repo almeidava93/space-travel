@@ -3,7 +3,7 @@
 
 spaceBackground = "black"
 addStars = true
-spaceShipStartingPosition = "earth"
+spaceShipStartingPosition = "saturn"
 
 [colors]
 black = "#030303"

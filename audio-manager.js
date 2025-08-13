@@ -117,11 +117,11 @@ export class AudioManager {
 
     stopAll({ fadeMs=1000 } = {}) {
         for (const [name, src] of this.playing) {
-        if (fadeMs > 0) {
-            this._fade(src, src.getVolume(), 0, fadeMs, () => { src.stop(); this.playing.delete(name); });
-        } else {
-            src.stop(); this.playing.delete(name);
-        }
+            if (fadeMs > 0) {
+                this._fade(src, src.getVolume(), 0, fadeMs, () => { src.stop(); this.playing.delete(name); });
+            } else {
+                src.stop(); this.playing.delete(name);
+            }
         }
     }
 }

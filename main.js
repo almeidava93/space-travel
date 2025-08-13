@@ -531,20 +531,6 @@ function solarSystemScene() {
   Object.keys(planetsData).forEach((planetName) => {
     const planetObject = new SphericalAstronomicalObject(planetsData[planetName]);
 
-    // if (planetObject.positionalAudio) {
-    //   // Optional: browsers require a user gesture before audio can play
-    //   const resumeAudio = async () => {
-    //     const ctx = spaceshipObject.camera.context;
-    //     if (ctx && ctx.state === 'suspended') await ctx.resume();
-    //     window.removeEventListener('pointerdown', resumeAudio);
-    //     window.removeEventListener('keydown', resumeAudio);
-    //   };
-    //   window.addEventListener('pointerdown', resumeAudio, { once: true });
-    //   window.addEventListener('keydown', resumeAudio, { once: true });
-
-    //   // planetObject.loadPositionalAudio(spaceshipObject.camera);
-    // }
-
     solarSystem.add(planetObject.orbit);
     PLANETS[planetName] = planetObject;
   })
@@ -553,13 +539,6 @@ function solarSystemScene() {
   Object.keys(moonsData).forEach((moonName) => {
     const moonObject = new SphericalAstronomicalObject(moonsData[moonName]);
     moonObject.orbit.position.set(0, 0, PLANETS[moonsData[moonName].parentPlanet].distanceFromOrbitCenter);
-
-    // if (moonObject.positionalAudio) {
-    //   (async () => {
-    //     await spaceshipObject.ready;
-    //     // moonObject.loadPositionalAudio(spaceshipObject.camera);
-    //   })();
-    // }
 
     PLANETS[moonsData[moonName].parentPlanet].orbit.add(moonObject.orbit);
     MOONS[moonName] = moonObject;
@@ -574,17 +553,18 @@ function solarSystemScene() {
 
   // Reuse your star texture as a dot
   const markerTexture = textureLoader.load('white-circle.png');
+  const spaceshipMarkerTexture = textureLoader.load('spaceship-marker.png');
   // Marker size in world units (adjust with mapSize)
   const markerWorldSize = mapSize * 0.04;
 
-  function makeMarker(color = 0xffffff) {
+  function makeMarker(color = 0xffffff, markerTexture, opacity = 0.95) {
     const mat = new THREE.SpriteMaterial({
       map: markerTexture,
       color,
       depthTest: false,
       depthWrite: false,
       transparent: true,
-      opacity: 0.95,
+      opacity: opacity,
     });
     const spr = new THREE.Sprite(mat);
     spr.layers.set(1);           // <- only show on minimap
@@ -602,7 +582,7 @@ function solarSystemScene() {
       key === 'mars'  ? 0xff6644 :
       0xffffff;
 
-    const spr = makeMarker(color);
+    const spr = makeMarker(color, markerTexture);
     p.mesh.getWorldPosition(_wp);
     spr.position.copy(_wp);
 
@@ -611,14 +591,14 @@ function solarSystemScene() {
 
   // Add a marker for each moon + initial position
   Object.entries(MOONS).forEach(([key, m]) => {
-    const spr = makeMarker(0xaaaaaa);
+    const spr = makeMarker(0xaaaaaa, markerTexture);
     m.mesh.getWorldPosition(_wp);
     spr.position.copy(_wp);
     moonMarkers[key] = spr;
   });
 
   // Ship marker initial position (exists even before GLTF)
-  shipMarker = makeMarker(0x00ff88);
+  shipMarker = makeMarker('#21ff6b', spaceshipMarkerTexture, 1.0);
   spaceshipObject.pivot.getWorldPosition(_wp);
   shipMarker.position.copy(_wp);
 
@@ -800,7 +780,10 @@ function solarSystemScene() {
 
       // rotation: yaw (Left/Right)
       const yaw   = (keys.has("ArrowLeft") | keys.has("KeyA") ? 1 : 0) - (keys.has("ArrowRight") | keys.has("KeyD") ? 1 : 0);
-      if (yaw)   spaceshipObject.pivot.rotateOnWorldAxis(up, yaw * spaceshipObject.rotationSpeed * dt);
+      if (yaw) {
+        spaceshipObject.pivot.rotateOnWorldAxis(up, yaw * spaceshipObject.rotationSpeed * dt);
+        
+      }  
 
     }
 
@@ -879,6 +862,22 @@ function solarSystemScene() {
       spaceshipObject.pivot.getWorldPosition(shipMarker.position);
       minimapCamera.position.set(shipMarker.position.x, shipMarker.position.y + mapSize, shipMarker.position.z);
       minimapCamera.lookAt(shipMarker.position);
+
+      // directions in world space
+      const forward = spaceshipObject.pivot.getWorldDirection(
+        new THREE.Vector3()
+      ).normalize();
+
+      // Project forward vector onto XZ plane (ignore Y)
+      forward.y = 0;
+      forward.normalize();
+
+      // Calculate the angle between world +Z (north on minimap) and ship's forward
+      // atan2(forward.x, forward.z) gives the heading in radians
+      const heading = Math.atan2(forward.x, forward.z);
+
+      // Rotate minimap so that up matches ship's heading
+      minimapCamera.rotation.z = heading - Math.PI;
     }
 
     // Render minimap

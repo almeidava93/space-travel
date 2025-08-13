@@ -3,7 +3,7 @@
 
 spaceBackground = "black"
 addStars = true
-spaceShipStartingPosition = "earth"
+spaceShipStartingPosition = "saturn"
 
 [colors]
 black = "#030303"
@@ -76,7 +76,7 @@ orbitalPeriod = 0.0748
  
 [moons.earthMoon.otherMaterialProps]
 emissive = "#f3f3ee"
-emissiveIntensity = 0.05
+emissiveIntensity = 0.01
 
 [moons.earthMoon.positionalAudio]
 filePath = "audio/fly-me-to-the-moon.mp3"
