@@ -1,6 +1,6 @@
 export default {
   // config options
-    base: '/three-demo/',
+    base: '/space-travel/',
     build: {
       outDir: 'docs',
     },
