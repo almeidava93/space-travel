@@ -3,7 +3,7 @@
 
 spaceBackground = "black"
 addStars = true
-spaceShipStartingPosition = "saturn"
+spaceShipStartingPosition = "earth"
 
 [colors]
 black = "#030303"
@@ -24,7 +24,6 @@ emissiveIntensity = 2
 
 [planets.sun.positionalAudio]
 filePath = "audio/highway-to-hell.mp3"
-refDistance = 500
 
 # Venus
 [planets.venus]
@@ -39,6 +38,10 @@ orbitalPeriod = 0.6658
 [planets.venus.otherMaterialProps]
 emissive = "#f3f3ee"
 emissiveIntensity = 0.05
+
+[planets.venus.positionalAudio]
+filePath = "https://s3.eu-central-1.wasabisys.com/audio.com.audio/transcoding/61/37/1827088090363761-1827088090412187-1827088093129744.mp3?X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=W7IA3NSYSOQIKLY9DEVC%2F20250813%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20250813T191541Z&X-Amz-SignedHeaders=host&X-Amz-Expires=518400&X-Amz-Signature=21f64a908d8aa5d95b4c84f7eeb4adccb5e05fce2b91b07000b683bccc857ddb"
+
 
 # 🌍 Earth
 [planets.earth]
@@ -58,7 +61,6 @@ emissiveIntensity = 0.05
 
 [planets.earth.positionalAudio]
 filePath = "audio/faroeste-caboclo.mp3"
-refDistance = 12
 
 # 🌕 Moon
 [moons.earthMoon]
@@ -74,12 +76,10 @@ orbitalPeriod = 0.0748
  
 [moons.earthMoon.otherMaterialProps]
 emissive = "#f3f3ee"
-emissiveIntensity = 0.1
+emissiveIntensity = 0.05
 
 [moons.earthMoon.positionalAudio]
 filePath = "audio/fly-me-to-the-moon.mp3"
-refDistance = 3.5
-
 
 # 🔴 Mars
 [planets.mars]
@@ -95,6 +95,9 @@ orbitalPeriod = 1.8821
 [planets.mars.otherMaterialProps]
 emissive = "#f3f3ee"
 emissiveIntensity = 0.05
+
+[planets.mars.positionalAudio]
+filePath = "https://archive.org/download/RocketMan_20190407_1406/Rocket%20Man.mp3"
 
 
 # 🔴 Mercury
@@ -112,6 +115,8 @@ orbitalPeriod = 0.2410
 emissive = "#f3f3ee"
 emissiveIntensity = 0.05
 
+[planets.mercury.positionalAudio]
+filePath = "https://archive.org/download/eurythmicssweetdreamsaremadeofthisremastered_201907/Eurythmics%20-%20Sweet%20Dreams%20%28Are%20Made%20of%20This%29%20%28Remastered%29.mp3"
 
 # 🔴 Jupiter
 [planets.jupiter]
@@ -126,6 +131,9 @@ orbitalPeriod = 11.86
 [planets.jupiter.otherMaterialProps]
 emissive = "#f3f3ee"
 emissiveIntensity = 0.05
+
+[planets.jupiter.positionalAudio]
+filePath = "https://archive.org/download/JimCroceTimeInABottle1972Katy081616/Jim%20Croce%20-%20Time%20In%20A%20Bottle%20%281972%29%20%20_katy081616.mp3"
 
 
 # 🔴 Saturn
@@ -142,6 +150,9 @@ orbitalPeriod = 29.37
 emissive = "#f3f3ee"
 emissiveIntensity = 0.01
 
+[planets.saturn.positionalAudio]
+filePath = "https://archive.org/download/interstellar-soundtrack/02%20Cornfield%20Chase.mp3"
+
 # 🔴 Uranus
 [planets.uranus]
 name = "Uranus"
@@ -156,6 +167,9 @@ orbitalPeriod = 84.099
 emissive = "#f3f3ee"
 emissiveIntensity = 0.01
 
+[planets.uranus.positionalAudio]
+filePath = "https://s3.eu-central-1.wasabisys.com/audio.com.audio/transcoding/29/66/1835107871526629-1835107871675398-1835107872527911.mp3?X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=W7IA3NSYSOQIKLY9DEVC%2F20250812%2Feu-central-1%2Fs3%2Faws4_request&X-Amz-Date=20250812T042424Z&X-Amz-SignedHeaders=host&X-Amz-Expires=518400&X-Amz-Signature=46050792b8c001fed74f299bfe9a08f8292f33fb9e06fa9f99b97eb723493dfd"
+
 # 🔴 Neptune
 [planets.neptune]
 name = "Neptune"
@@ -169,3 +183,6 @@ orbitalPeriod = 164.86
 [planets.neptune.otherMaterialProps]
 emissive = "#f3f3ee"
 emissiveIntensity = 0.01
+
+[planets.neptune.positionalAudio]
+filePath = "https://archive.org/download/youngsik._20190603_0842/5.Mr.%20Blue%20Sky%20-%20Electric%20Light%20Orchestra%20Mr.%20Blue%20Sky.mp3"

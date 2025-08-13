@@ -47,6 +47,72 @@
           height: 100%;
           display: block;
         }
+        :root {
+          --gap: 20px;
+          --minimap: 200px;
+        }
+
+        #controls {
+          position: fixed;
+          bottom: var(--gap);
+          right: calc(var(--gap) + var(--minimap) + var(--gap)); /* sits left of the minimap */
+          z-index: 10;
+          display: grid;
+          grid-auto-flow: column;
+          gap: 10px;
+          padding: 10px;
+          background: rgba(0,0,0,0.55);
+          backdrop-filter: blur(4px);
+          border: 1px solid rgba(255,255,255,0.25);
+          border-radius: 10px;
+          pointer-events: auto;
+          font-family: system-ui, sans-serif;
+        }
+
+        #controls .pad {
+          display: grid;
+          grid-template-columns: repeat(3, 44px);
+          grid-template-rows: repeat(2, 44px);
+          gap: 8px 8px;
+          align-items: center;
+          justify-items: center;
+        }
+
+        #controls .vertical {
+          display: grid;
+          gap: 8px;
+          align-items: center;
+          justify-items: center;
+        }
+
+        .ctrl-btn {
+          width: 44px;
+          height: 44px;
+          border-radius: 8px;
+          border: 1px solid rgba(255,255,255,0.25);
+          background: rgba(255,255,255,0.09);
+          color: #fff;
+          font-size: 18px;
+          line-height: 1;
+          cursor: pointer;
+          touch-action: none; /* smoother pointer events on mobile */
+        }
+        .ctrl-btn:hover { background: rgba(255,255,255,0.15); }
+        .ctrl-btn.active { background: rgba(80,160,255,0.35); }
+
+        #btn-accel { grid-column: 2; grid-row: 1; }
+        #btn-left  { grid-column: 1; grid-row: 2; }
+        #btn-brake { grid-column: 2; grid-row: 2; }
+        #btn-right { grid-column: 3; grid-row: 2; }
+
+        /* Small screens: stack above the minimap */
+        @media (max-width: 640px) {
+          #controls {
+            right: var(--gap);
+            bottom: calc(var(--gap) + var(--minimap) + var(--gap));
+          }
+        }
+
     </style>
   </head>
   <body>
@@ -77,5 +143,19 @@
     <div id="minimap-container">
       <canvas id="minimap"></canvas>
     </div>
+    <div id="controls" aria-label="Flight controls">
+      <div class="pad" aria-label="Yaw/Throttle">
+        <button id="btn-accel" class="ctrl-btn" title="Accelerate (W / ↑)">W ↑</button>
+        <button id="btn-left"  class="ctrl-btn" title="Yaw Left (A / ←)">A ←</button>
+        <button id="btn-brake" class="ctrl-btn" title="Brake (S / ↓)">S ↓</button>
+        <button id="btn-right" class="ctrl-btn" title="Yaw Right (D / →)">D →</button>
+      </div>
+      <div class="vertical" aria-label="Vertical/Stop">
+        <button id="btn-up"   class="ctrl-btn" title="Ascend (R)">R ⯅</button>
+        <button id="btn-down" class="ctrl-btn" title="Descend (F)">⯆ F</button>
+        <button id="btn-stop" class="ctrl-btn" title="Emergency Stop">⏹</button>
+      </div>
+    </div>
+
   </body>
 </html>

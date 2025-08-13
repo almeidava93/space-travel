@@ -70,7 +70,7 @@ export class AudioManager {
 
     // Spatial/positional
     playPositional(name, parentMesh, {
-        loop=true, volume=1, refDistance=10, maxDistance=1e6, rolloff='inverse', fadeMs=0
+        loop=true, volume=1, refDistance=10, maxDistance=Math.pow(10, 20), rolloff='inverse', fadeMs=0
     } = {}) {
         const src = this._ensurePositional(name, parentMesh);
         src.setLoop(loop);
@@ -115,10 +115,13 @@ export class AudioManager {
         }
     }
 
-    reset(name) {
-        const src = this.playing.get(name);
-        if (!src) return;
-        src.setVolume(0);
-        src.stop();
+    stopAll({ fadeMs=1000 } = {}) {
+        for (const [name, src] of this.playing) {
+        if (fadeMs > 0) {
+            this._fade(src, src.getVolume(), 0, fadeMs, () => { src.stop(); this.playing.delete(name); });
+        } else {
+            src.stop(); this.playing.delete(name);
+        }
+        }
     }
 }

@@ -12,6 +12,7 @@ async function loadTOML(path) {
 
 const sceneConfig = await loadTOML('sceneConfig.toml');
 const planetsData = sceneConfig.planets;
+console.log(planetsData);
 const moonsData = sceneConfig.moons;
 const mapSize = Math.pow(10, 11); // adjust for your scale
 
@@ -314,6 +315,77 @@ class Spaceship {
 
 }
 
+// Control keys interface
+function bindHold(selector, codes) {
+  const el = document.querySelector(selector);
+  if (!el) return;
+
+  const press = (e) => {
+    e.preventDefault();
+    codes.forEach(c => keys.add(c));
+    el.classList.add('active');
+    if (e.pointerId != null && el.setPointerCapture) {
+      try { el.setPointerCapture(e.pointerId); } catch {}
+    }
+  };
+  const release = () => {
+    codes.forEach(c => keys.delete(c));
+    el.classList.remove('active');
+  };
+
+  el.addEventListener('pointerdown', press);
+  el.addEventListener('pointerup', release);
+  el.addEventListener('pointercancel', release);
+  el.addEventListener('lostpointercapture', release);
+}
+
+bindHold('#btn-accel', ['KeyW', 'ArrowUp']);
+bindHold('#btn-brake', ['KeyS', 'ArrowDown']);
+bindHold('#btn-left',  ['ArrowLeft', 'KeyA']);
+bindHold('#btn-right', ['ArrowRight', 'KeyD']);
+bindHold('#btn-up',    ['KeyR']);
+bindHold('#btn-down',  ['KeyF']);
+
+// Emergency stop sets speed/accel to zero
+const btnStop = document.getElementById('btn-stop');
+if (btnStop) {
+  btnStop.addEventListener('click', (e) => {
+    e.preventDefault();
+    // clear held virtual keys
+    ['KeyW','ArrowUp','KeyS','ArrowDown','ArrowLeft','KeyA','ArrowRight','KeyD','KeyR','KeyF']
+      .forEach(k => keys.delete(k));
+    btnStop.blur?.();
+    // zero out motion
+    spaceshipObject.acceleration = 0;
+    spaceshipObject.currentSpeed = 0;
+  });
+}
+
+const keyToButton = {
+  'KeyW': '#btn-accel', 'ArrowUp': '#btn-accel',
+  'KeyS': '#btn-brake', 'ArrowDown': '#btn-brake',
+  'KeyA': '#btn-left',  'ArrowLeft': '#btn-left',
+  'KeyD': '#btn-right', 'ArrowRight': '#btn-right',
+  'KeyR': '#btn-up',
+  'KeyF': '#btn-down'
+};
+
+window.addEventListener('keydown', (e) => {
+  if (!keys.has(e.code)) {
+    keys.add(e.code);
+    // Add active class to matching button
+    const sel = keyToButton[e.code];
+    if (sel) document.querySelector(sel)?.classList.add('active');
+  }
+});
+
+window.addEventListener('keyup', (e) => {
+  keys.delete(e.code);
+  // Remove active class from matching button
+  const sel = keyToButton[e.code];
+  if (sel) document.querySelector(sel)?.classList.remove('active');
+});
+
 // Initialize objects
 const PLANETS = {};
 const MOONS = {};
@@ -377,13 +449,25 @@ function resizeRendererToDisplaySize(renderer) {
   return needResize;
 }
 
-const audio = new AudioManager(spaceshipObject.camera);
-const triggers = new TriggerManager();
+  // --- Load audio ---
+  const audio = new AudioManager(spaceshipObject.camera);
+  const triggers = new TriggerManager();
 
-// Preload assets (do this once during init)
-await Promise.all([
-  audio.load('max_speed', 'https://archive.org/download/StarWarsThemeSongByJohnWilliams/Star%20Wars%20Theme%20Song%20By%20John%20Williams.mp3'),
-]);
+  // Preload assets (do this once during init)
+  const audioPromises = [
+    audio.load('max_speed', 'https://archive.org/download/StarWarsThemeSongByJohnWilliams/Star%20Wars%20Theme%20Song%20By%20John%20Williams.mp3'),
+  ];
+
+  Object.entries(planetsData).forEach(([key, p]) => {
+    if (planetsData[key].positionalAudio != null) audioPromises.push(audio.load(key, p.positionalAudio.filePath));
+  });
+
+  console.log('Loading audio...', planetsData);
+
+  await Promise.all(audioPromises);
+
+  console.log('Audio loaded', audio.buffers);
+
 
 function solarSystemScene() {
   const canvas = document.querySelector('#c');
@@ -447,19 +531,19 @@ function solarSystemScene() {
   Object.keys(planetsData).forEach((planetName) => {
     const planetObject = new SphericalAstronomicalObject(planetsData[planetName]);
 
-    if (planetObject.positionalAudio) {
-      // Optional: browsers require a user gesture before audio can play
-      const resumeAudio = async () => {
-        const ctx = spaceshipObject.camera.context;
-        if (ctx && ctx.state === 'suspended') await ctx.resume();
-        window.removeEventListener('pointerdown', resumeAudio);
-        window.removeEventListener('keydown', resumeAudio);
-      };
-      window.addEventListener('pointerdown', resumeAudio, { once: true });
-      window.addEventListener('keydown', resumeAudio, { once: true });
+    // if (planetObject.positionalAudio) {
+    //   // Optional: browsers require a user gesture before audio can play
+    //   const resumeAudio = async () => {
+    //     const ctx = spaceshipObject.camera.context;
+    //     if (ctx && ctx.state === 'suspended') await ctx.resume();
+    //     window.removeEventListener('pointerdown', resumeAudio);
+    //     window.removeEventListener('keydown', resumeAudio);
+    //   };
+    //   window.addEventListener('pointerdown', resumeAudio, { once: true });
+    //   window.addEventListener('keydown', resumeAudio, { once: true });
 
-      // planetObject.loadPositionalAudio(spaceshipObject.camera);
-    }
+    //   // planetObject.loadPositionalAudio(spaceshipObject.camera);
+    // }
 
     solarSystem.add(planetObject.orbit);
     PLANETS[planetName] = planetObject;
@@ -470,16 +554,18 @@ function solarSystemScene() {
     const moonObject = new SphericalAstronomicalObject(moonsData[moonName]);
     moonObject.orbit.position.set(0, 0, PLANETS[moonsData[moonName].parentPlanet].distanceFromOrbitCenter);
 
-    if (moonObject.positionalAudio) {
-      (async () => {
-        await spaceshipObject.ready;
-        // moonObject.loadPositionalAudio(spaceshipObject.camera);
-      })();
-    }
+    // if (moonObject.positionalAudio) {
+    //   (async () => {
+    //     await spaceshipObject.ready;
+    //     // moonObject.loadPositionalAudio(spaceshipObject.camera);
+    //   })();
+    // }
 
     PLANETS[moonsData[moonName].parentPlanet].orbit.add(moonObject.orbit);
     MOONS[moonName] = moonObject;
   })
+
+
 
   // --- Minimap markers ---
   const planetMarkers = {};
@@ -599,8 +685,6 @@ function solarSystemScene() {
         distanceToShip: m.mesh.position.distanceTo(STATE.ship.position),
       }
     });
-
-    console.log(STATE);
   }
 
   // Initialize state
@@ -611,6 +695,7 @@ function solarSystemScene() {
     id: 'max_speed',
     condition: (state) => state.ship.currentSpeed >= spaceshipObject.maxSpeed,
     onEnter: () => {
+      audio.stopAll();
       const a = audio.playGlobal('max_speed', { loop: false, volume: 0.8, fadeMs: 0 });
     },
     onExit: () => {
@@ -621,6 +706,26 @@ function solarSystemScene() {
     once: false,
     cooldownMs: 2000, // don’t spam
   }));
+
+  // Add planets positional audio triggers
+  Object.entries(PLANETS).forEach(([key, p]) => {
+    if (PLANETS[key].positionalAudio === null) return;
+    triggers.add(new Trigger({
+      id: key,
+      condition: (state) => state.planets[key].distanceToShip < Math.pow(10, 10),
+      onEnter: () => {
+        audio.stopAll();
+        const a = audio.playPositional(key, PLANETS[key].mesh, { refDistance: Math.pow(10, 10), maxDistance: Math.pow(10, 12), loop: true, volume: 1, fadeMs: 0 });
+      },
+      onExit: () => {
+        audio.fadeTo(key, 0, 10000);
+      },
+      once: false,
+      cooldownMs: 2000, // don’t spam
+    }));
+  })
+
+  console.log(triggers);
 
   // 🎥 Render loop
   function render(time) {
